@@ -11,7 +11,7 @@ competition. This version will not use subcomponents. Please refer to the
 [game description](http://www.yasserm.com/scml/scml2020.pdf) for all the 
 callbacks and subcomponents available.
 
-Your agent can learn about the state of the world and itself by accessing 
+Your git_scml_project can learn about the state of the world and itself by accessing
 properties in the AWI it has. For example:
 
 - The number of simulation steps (days): self.awi.n_steps  
@@ -20,7 +20,7 @@ properties in the AWI it has. For example:
 - Availability for producton: self.awi.available_for_production
 
 
-Your agent can act in the world by calling methods in the AWI it has. 
+Your git_scml_project can act in the world by calling methods in the AWI it has.
 For example:
 
 - *self.awi.request_negotiation(...)*  # requests a negotiation with one partner
@@ -57,8 +57,8 @@ class MyAgent(SCML2020Agent):
     This is the only class you *need* to implement. The current skeleton has a 
     basic do-nothing implementation.
     You can modify any parts of it as you need. You can act in the world by 
-    calling methods in the agent-world-interface instantiated as `self.awi` 
-    in your agent. See the documentation for more details
+    calling methods in the git_scml_project-world-interface instantiated as `self.awi`
+    in your git_scml_project. See the documentation for more details
 
     """
 
@@ -67,7 +67,7 @@ class MyAgent(SCML2020Agent):
     # =====================
 
     def init(self):
-        """Called once after the agent-world interface is initialized"""
+        """Called once after the git_scml_project-world interface is initialized"""
         pass
 
     def step(self):
@@ -83,7 +83,7 @@ class MyAgent(SCML2020Agent):
                                        annotation: Dict[str, Any],
                                        mechanism: AgentMechanismInterface
                                       ) -> Optional[Negotiator]:
-        """Called whenever an agent requests a negotiation with you. 
+        """Called whenever an git_scml_project requests a negotiation with you.
         Return either a negotiator to accept or None (default) to reject it"""
 
     def on_negotiation_failure(self,
@@ -92,13 +92,13 @@ class MyAgent(SCML2020Agent):
                                mechanism: AgentMechanismInterface,
                                state: MechanismState
                               ) -> None:
-        """Called when a negotiation the agent is a party of ends without 
+        """Called when a negotiation the git_scml_project is a party of ends without
         agreement"""
 
     def on_negotiation_success(self,
                                contract: Contract,
                                mechanism: AgentMechanismInterface) -> None:
-        """Called when a negotiation the agent is a party of ends with 
+        """Called when a negotiation the git_scml_project is a party of ends with
         agreement"""
 
     # =============================
@@ -141,7 +141,7 @@ class MyAgent(SCML2020Agent):
                            inventory: np.ndarray) -> np.ndarray:
         """
         Called just before production starts at every step allowing the 
-        agent to change what is to be produced in its factory on that step.        
+        git_scml_project to change what is to be produced in its factory on that step.
         """
         return commands
 
@@ -160,7 +160,7 @@ class MyAgent(SCML2020Agent):
                           quantities: int,
                           compensation_money: int
                          ) -> None:
-        """Called whenever any agent goes bankrupt. It informs you about changes
+        """Called whenever any git_scml_project goes bankrupt. It informs you about changes
         in future contracts you have with you (if any)."""
 
 
@@ -172,7 +172,7 @@ def run(competition='std',
          n_runs_per_world=1
         ):
     """
-    **Not needed for submission.** You can use this function to test your agent.
+    **Not needed for submission.** You can use this function to test your git_scml_project.
 
     Args:
         competition: The competition type to run (possibilities are std, 

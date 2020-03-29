@@ -11,7 +11,7 @@ competition. This version will use subcomponents. Please refer to the
 [game description](http://www.yasserm.com/scml/scml2020.pdf) for all the 
 callbacks and subcomponents available.
 
-Your agent can learn about the state of the world and itself by accessing 
+Your git_scml_project can learn about the state of the world and itself by accessing
 properties in the AWI it has. For example:
 
 - The number of simulation steps (days): self.awi.n_steps  
@@ -20,7 +20,7 @@ properties in the AWI it has. For example:
 - Availability for producton: self.awi.available_for_production
 
 
-Your agent can act in the world by calling methods in the AWI it has. 
+Your git_scml_project can act in the world by calling methods in the AWI it has.
 For example:
 
 - *self.awi.request_negotiation(...)*  # requests a negotiation with one partner
@@ -64,7 +64,7 @@ class MyComponentsBasedAgent(
     SCML2020Agent
 ):
     """
-    This is the only class you *need* to implement. You can create the agent
+    This is the only class you *need* to implement. You can create the git_scml_project
     by combining the following strategies:
     
     1. A trading strategy that decides the quantities to sell and buy
@@ -82,7 +82,7 @@ def run(competition='std',
          n_runs_per_world=1
         ):
     """
-    **Not needed for submission.** You can use this function to test your agent.
+    **Not needed for submission.** You can use this function to test your git_scml_project.
 
     Args:
         competition: The competition type to run (possibilities are std, 
