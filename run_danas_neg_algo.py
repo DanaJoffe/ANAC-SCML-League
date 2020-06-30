@@ -1,5 +1,7 @@
-
+import matplotlib as plt
 import functools
+from collections import defaultdict
+
 from scml.scml2020.agents.decentralizing import _NegotiationCallbacks
 from scml.scml2020.components.negotiation import ControllerInfo
 from scml.scml2020.services import StepController
@@ -7,10 +9,10 @@ from typing import Any, Dict, Optional, Union, Tuple
 
 
 from dana_neg_algo import DanasNegotiator, DanasController
-from run_tournament import run
+from run_tournament import run, run2
 from negmas import SAONegotiator
 from scml.scml2020 import SCML2020Agent, PredictionBasedTradingStrategy, SupplyDrivenProductionStrategy, \
-    StepNegotiationManager
+    StepNegotiationManager, SCML2020World
 
 
 class MyNegotiationManager(StepNegotiationManager):
@@ -22,6 +24,8 @@ class MyNegotiationManager(StepNegotiationManager):
             **kwargs,
     ):
         super().__init__(*args, negotiator_type=negotiator_type, negotiator_params=negotiator_params, **kwargs)
+        self.seller_acc_unit_prices = []  # todo: new!!
+        self.buyer_acc_unit_prices = []  # todo: new!!
 
     def add_controller(
         self,
@@ -36,6 +40,7 @@ class MyNegotiationManager(StepNegotiationManager):
         if not is_seller and self.buyers[step].controller is not None:
             return self.buyers[step].controller
         controller = DanasController(
+            acc_unit_prices=self.seller_acc_unit_prices if is_seller else self.buyer_acc_unit_prices,  # todo: new!!
             is_seller=is_seller,
             target_quantity=target,
             negotiator_type=self.negotiator_type,
@@ -91,4 +96,5 @@ class MyAgent(
 if __name__ == '__main__':
     # a = MyAgent()
     # a.sign_all_contracts()
+    # run2(agent=MyAgent)
     run(agent=MyAgent)

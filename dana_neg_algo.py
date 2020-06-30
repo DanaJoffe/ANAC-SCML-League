@@ -1,5 +1,6 @@
 import math
 import random
+import statistics
 from collections import defaultdict
 from typing import Tuple, List, Dict, Any, Callable, Union, Type, Optional
 
@@ -127,7 +128,52 @@ class DanasNegotiator(AspirationNegotiator):
         super().__init__(*args, max_aspiration=3.5, **kwargs)
 
 
-class DanasController(UpdateUfunc, SAOController, AspirationMixin, Notifier):
+class MaintainFairPrice(object):
+    def init_component(self, n_std, min_sample, acc_unit_prices):
+        self.all_unit_prices_from_agreements = acc_unit_prices
+        self.n_std = n_std
+        self.min_sample = min_sample
+
+    def achieved_agreement(self, agreement: "Outcome"):
+        self.all_unit_prices_from_agreements.append(agreement[UNIT_PRICE])
+
+    def propose_based_on_all_neg(self, outcome: "Outcome") -> Optional["Outcome"]:
+        if outcome is None:
+            return outcome
+        if len(self.all_unit_prices_from_agreements) >= self.min_sample:
+            mean = statistics.mean(self.all_unit_prices_from_agreements)
+            std = statistics.stdev(self.all_unit_prices_from_agreements)
+            if std == 0:
+                return outcome
+
+            if self.is_seller:
+                if outcome[UNIT_PRICE] < mean - self.n_std * std:
+                    # too cheap
+                    return (outcome[0], outcome[1], math.ceil(mean))
+            elif outcome[UNIT_PRICE] > mean + self.n_std * std:
+                # too expensive
+                return (outcome[0], outcome[1], int(mean))
+        return outcome
+
+    def respond_based_on_all_neg(self, current_resp: ResponseType, offer: "Outcome") -> ResponseType:
+        if current_resp != ResponseType.ACCEPT_OFFER or len(self.all_unit_prices_from_agreements) < self.min_sample:
+            return current_resp
+        mean = statistics.mean(self.all_unit_prices_from_agreements)
+        std = statistics.stdev(self.all_unit_prices_from_agreements)
+        if std == 0:
+            return ResponseType.ACCEPT_OFFER
+
+        if self.is_seller:
+            if offer[UNIT_PRICE] < mean - self.n_std * std:
+                # too cheap
+                return ResponseType.REJECT_OFFER
+        elif offer[UNIT_PRICE] > mean + self.n_std * std:
+            # too expensive
+            return ResponseType.REJECT_OFFER
+        return ResponseType.ACCEPT_OFFER
+
+
+class DanasController(MaintainFairPrice, UpdateUfunc, SAOController, AspirationMixin, Notifier):
     """A controller for managing a set of negotiations about selling or buying (but not both)  starting/ending at some
     specific time-step.
 
@@ -162,6 +208,8 @@ class DanasController(UpdateUfunc, SAOController, AspirationMixin, Notifier):
     def __init__(
         self,
         *args,
+        acc_unit_prices: List,  # all accepted unit prices
+
         target_quantity: int,
         is_seller: bool,
         step: int,
@@ -175,9 +223,14 @@ class DanasController(UpdateUfunc, SAOController, AspirationMixin, Notifier):
         negotiations_concluded_callback: Callable[[int, bool], None],
         negotiator_params: Dict[str, Any] = None,
         max_retries: int = 2,
+
+        n_std: int = 2,  # standard deviation to use when deciding if unit price is acceptable
+        min_sample: int = 3,  # minimum population sample to consider
+
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
+        self.init_component(n_std, min_sample, acc_unit_prices)
         self.parent_name = parent_name
         self.awi = awi
         self.horizon = horizon
@@ -207,17 +260,16 @@ class DanasController(UpdateUfunc, SAOController, AspirationMixin, Notifier):
         ufun: Optional["UtilityFunction"] = None,
         role: str = "agent",
     ) -> bool:
-        raise Exception
-        # joined = super().join(negotiator_id, ami, state, ufun=ufun, role=role)
-        # if joined:
-        #     self.completed[negotiator_id] = False
-        # return joined
+        joined = super().join(negotiator_id, ami, state, ufun=ufun, role=role)
+        if joined:
+            self.completed[negotiator_id] = False
+        return joined
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
         self.set_ufun_members(negotiator_id)
         self.__negotiator._ami = self.negotiators[negotiator_id][0]._ami
-        a = self.__negotiator.propose(state)
-        return a
+        outcome = self.__negotiator.propose(state)
+        return self.propose_based_on_all_neg(outcome)
 
     def respond(
         self, negotiator_id: str, state: MechanismState, offer: "Outcome"
@@ -226,8 +278,8 @@ class DanasController(UpdateUfunc, SAOController, AspirationMixin, Notifier):
             return ResponseType.END_NEGOTIATION
         self.set_ufun_members(negotiator_id)
         self.__negotiator._ami = self.negotiators[negotiator_id][0]._ami
-        a = self.__negotiator.respond(offer=offer, state=state)
-        return a
+        resp = self.__negotiator.respond(offer=offer, state=state)
+        return self.respond_based_on_all_neg(resp, offer)
 
     def __str__(self):
         return (
@@ -262,6 +314,7 @@ class DanasController(UpdateUfunc, SAOController, AspirationMixin, Notifier):
         self.completed[negotiator_id] = True
         # if there is an agreement increase the secured amount and check if we are done.
         if agreement is not None:
+            self.achieved_agreement(agreement)
             self.secured += agreement[QUANTITY]
             if self.secured >= self.target:
                 self.awi.loginfo(f"Ending all negotiations on controller {str(self)}")
